@@ -1,0 +1,33 @@
+{
+  "folders": [
+    {
+      "name": "factory backend",
+      "path": "back/factory-api-module"
+    },
+    {
+      "name": "factory batch",
+      "path": "back/factory-batch"
+    },
+  ],
+  "settings": {
+    "java.compile.nullAnalysis.mode": "automatic",
+  },
+  "extensions": {
+    "recommendations": [
+      "vscjava.vscode-java-pack",
+      "pivotal.vscode-boot-dev-pack",
+      "jebbs.plantuml",
+      "esbenp.prettier-vscode",
+      "sonarsource.sonarlint-vscode",
+      "yangbaopan.vscode-java-ibatisx",
+      "redhat.vscode-yaml",
+      "vscjava.vscode-lombok",
+      "ms-kubernetes-tools.vscode-kubernetes-tools",
+      "codezombiech.gitig",
+      "mhutchie.git-graph",
+      "google.gemini-cli-vscode-ide-companion",
+      "dbaeumer.vscode-eslint",
+      "ms-azuretools.vscode-docker",
+    ],
+  },
+}
