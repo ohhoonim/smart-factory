@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: 'postgres:18.1-alpine'
+    container_name: postgres_container
+    restart: always
+    environment:
+      - 'POSTGRES_DB=mydatabase'
+      - 'POSTGRES_PASSWORD=secret'
+      - 'POSTGRES_USER=myuser'
+      - 'PGDATA=/var/lib/postgresql/18/data'
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./.docker_data/postgres:/var/lib/postgresql/18/data
+  # Redis 대안, spring data redis를 그대로 사용가능 
+  valkey:
+    image: valkey/valkey:9.0.1-alpine3.23
+    container_name: valkey_container
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./build/docker/valkey_data:/data
+    # Spring Data Redis 연동을 위해 비밀번호와 AOF 설정 유지
+    command: valkey-server --requirepass your_password --appendonly yes
+
+networks:
+  default:
+    name: statemachine_app_network

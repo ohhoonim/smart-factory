@@ -28,6 +28,7 @@
       "google.gemini-cli-vscode-ide-companion",
       "dbaeumer.vscode-eslint",
       "ms-azuretools.vscode-docker",
+      "github.vscode-pull-request-github"
     ],
   },
 }

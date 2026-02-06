@@ -2,11 +2,12 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.2'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.asciidoctor.jvm.convert' version "4.0.5"
 }
 
 group = 'dev.ohhoonim'
 version = '0.0.1-SNAPSHOT'
-description = 'Demo project for Spring Boot'
+description = 'smart factory project'
 
 java {
 	toolchain {
@@ -14,16 +15,95 @@ java {
 	}
 }
 
+configurations {
+	asciidoctorExtensions
+
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
 repositories {
 	mavenCentral()
 }
-
+ext {
+	set('springModulithVersion', "2.0.1")
+	snippetsDir = file('build/generated-snippets') // 문서 조각 저장 경로
+}
 dependencies {
+	// spring framework - web application 구성
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.boot:spring-boot-starter-restclient'
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-jdbc-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	// for Application Architecture
+	//    - required: ulid, lombok, validation, poi
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'com.github.f4b6a3:ulid-creator:5.2.3'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+	implementation 'commons-io:commons-io:2.21.0'
+	implementation 'org.aspectj:aspectjweaver:1.9.24'
+	implementation 'org.apache.poi:poi-ooxml:5.4.1'
+	//    - optional: docker, p6spy
+	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+	implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:2.0.0'
+	// database - postgresql, testcontainers
+	implementation 'org.postgresql:postgresql'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:testcontainers-postgresql'
+	testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+	// mybatis	
+	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.0.0'
+	implementation 'org.mybatis.dynamic-sql:mybatis-dynamic-sql:1.5.2'
+	testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:4.0.0'
+	// security and jwt
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	testImplementation 'org.springframework.security:spring-security-test'
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+	// modulith: core
+	implementation 'org.springframework.modulith:spring-modulith-starter-jdbc'
+	implementation 'org.springframework.modulith:spring-modulith-starter-insight' // actuator 포함
+	testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
+	// cache
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'
+	// REST Docs 의존성
+    testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+    asciidoctorExtensions 'org.springframework.restdocs:spring-restdocs-asciidoctor'
 }
 
-tasks.named('test') {
-	useJUnitPlatform()
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.modulith:spring-modulith-bom:${springModulithVersion}"
+	}
+}
+
+test {
+    useJUnitPlatform()
+    outputs.dir snippetsDir 
+}
+
+asciidoctorj {
+    version = '3.0.0'
+}
+
+tasks.named("asciidoctor") {
+    dependsOn test
+    inputs.dir snippetsDir
+    // 할당(=) 대신 샘플처럼 메서드 방식 사용
+    configurations "asciidoctorExtensions" 
+
+    sourceDir = file('src/docs/asciidoc')
+    baseDirFollowsSourceDir()
+    outputDir = file('build/api-spec')
+
+    // JVM 옵션은 Java 25에서는 여전히 필요할 수 있으니 에러 나면 추가하세요
 }

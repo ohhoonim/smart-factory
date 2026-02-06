@@ -1,3 +1,6 @@
+# Docker database data
+.docker_data/
+
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
