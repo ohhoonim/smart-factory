@@ -42,6 +42,12 @@
     - Pull Request 전에 features 브랜치에 main 브랜치 최신화는 필수입니다.
         - main이 자주 변경되는 상황이라면 merge를 추천하고,
         - 해당 branch를 개발자 1인만 사용하는 경우 PR직전 rebase를 추천합니다.
+    - (참고) vscode에서 브랜치 생성하기
+        - Github Pull Requests 확장을 설치한 후 다음 옵션을 추가해주면 git issue에서 브랜치를 생성시 features/[이슈번호]로 만들어준다. 
+        ```json
+        "githubIssues.issueBranchTitle": "features/${issueNumber}"
+        ``` 
+
 
 ### 코멘트 남기는 법
 - '#이슈번호': 해당 이슈로 링크가 걸립니다.
