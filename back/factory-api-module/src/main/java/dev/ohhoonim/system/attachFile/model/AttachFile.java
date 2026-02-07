@@ -10,7 +10,7 @@ import dev.ohhoonim.component.unit.BaseEntity;
 public class AttachFile extends BaseEntity<AttachFileId> {
 
     private List<FileItem> attachFiles = new ArrayList<>();
-    private boolean isLinked ;
+    private boolean isLinked;
     private int LIMIT_MAX = 5;
 
     public AttachFile(AttachFileId id, String operator) {
@@ -19,13 +19,14 @@ public class AttachFile extends BaseEntity<AttachFileId> {
     }
 
     public static AttachFile reconstitute(AttachFileId attachFileId, List<FileItem> attachFiles,
-            boolean isLinked, Instant createdAt, String createdBy, Instant modifiedAt, String modifiedBy) {
+            boolean isLinked, Instant createdAt, String createdBy, Instant modifiedAt,
+            String modifiedBy) {
         return new AttachFile(attachFileId, attachFiles, isLinked, createdAt, createdBy, modifiedAt,
                 modifiedBy);
     }
 
-    private AttachFile(AttachFileId attachFileId, List<FileItem> attachFiles, boolean isLinked, Instant createdAt,
-            String createdBy, Instant modifiedAt, String modifiedBy) {
+    private AttachFile(AttachFileId attachFileId, List<FileItem> attachFiles, boolean isLinked,
+            Instant createdAt, String createdBy, Instant modifiedAt, String modifiedBy) {
         super(attachFileId, createdAt, createdBy, modifiedAt, modifiedBy);
         this.attachFiles = attachFiles;
         this.isLinked = isLinked;
@@ -39,10 +40,10 @@ public class AttachFile extends BaseEntity<AttachFileId> {
         return this.isLinked;
     }
 
-    public void addFileItem(FileItem fileItem) {
-        if (attachFiles.size() >= LIMIT_MAX) {
-            throw new AttachFileException("허용된 파일 개수를 초과하였습니다.");
-        }
+    public void addFileItem(FileItem fileItem, AttachFilePolicy policy) {
+        policy.verifyAddition(this.attachFiles.size());
+        policy.verifyExtension(fileItem.extension());
+
         this.attachFiles.add(fileItem);
         recordModification(getCreatedBy());
     }
@@ -78,5 +79,11 @@ public class AttachFile extends BaseEntity<AttachFileId> {
         recordModification(getModifiedBy());
     }
 
-
+    /**
+     * 정책에 따라 이 그룹이 영구 삭제(Purge) 대상인지 판단한다.
+     * 조건: 1. 연결되지 않음(isLinked=false) AND 2. 정책상 만료됨(isExpired)
+     */
+    public boolean canBePurged(AttachFilePolicy policy) {
+        return !this.isLinked && policy.isExpired(this.getModifiedAt());
+    }
 }

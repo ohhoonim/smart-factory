@@ -12,18 +12,22 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 import dev.ohhoonim.system.attachFile.model.AttachFile;
 import dev.ohhoonim.system.attachFile.model.AttachFileId;
+import dev.ohhoonim.system.attachFile.model.AttachFilePolicy;
 import dev.ohhoonim.system.attachFile.model.FileItem;
 import dev.ohhoonim.system.attachFile.model.FileItemId;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AttachFileService {
 
     private final FileStorageActivity storageActivity;
     private final FileCommandActivity commandActivity;
     private final FileQueryActivity queryActivity;
     private final FileStreamActivity streamActivity;
+    private final AttachFilePolicy attachFilePolicy;
 
     /**
      * 완전히 새로운 첨부파일 그룹 생성 및 업로드
@@ -36,7 +40,7 @@ public class AttachFileService {
 
         // 2. 물리 저장 및 아이템 추가
         List<FileItem> newItems = storageActivity.store(files);
-        newItems.forEach(newAttachFile::addFileItem);
+        newItems.forEach(item -> newAttachFile.addFileItem(item, attachFilePolicy));
 
         // 3. 저장
         commandActivity.save(newAttachFile);
@@ -51,7 +55,7 @@ public class AttachFileService {
         List<FileItem> newItems = storageActivity.store(files);
 
         // 3. 도메인 모델(AR)에 비즈니스 로직 위임 (모델 내부에서 LIMIT_MAX 등 체크)
-        newItems.forEach(attachFile::addFileItem);
+        newItems.forEach(item -> attachFile.addFileItem(item, attachFilePolicy));
 
         // 4. 변경된 AR 상태 저장
         commandActivity.save(attachFile);
@@ -87,39 +91,25 @@ public class AttachFileService {
     }
 
     /**
-     * 논리 삭제된 파일들을 물리 저장소와 DB에서 완전히 제거 (배치용)
-     */
-    @Transactional
-    public void cleanupRemovedFiles() {
-        List<FileItem> targets = queryActivity.findRemovedItems();
-
-    for (FileItem item : targets) {
-        // 1. DB 메타데이터 먼저 삭제 (트랜잭션 범위 내)
-        commandActivity.deleteMetadata(item.fileItemId());
-
-        // 2. 트랜잭션이 성공적으로 'Commit' 된 후에만 물리 파일 삭제 수행
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                storageActivity.deletePhysicalFile(item.uploadedPath());
-            }
-        });
-    }
-    }
-
-    /**
      * 특정 파일을 물리 저장소와 DB에서 즉시 영구 삭제
      */
     @Transactional
     public void purgeFile(FileItemId fileItemId) {
-        // 1. 삭제할 파일 정보 조회 (경로 정보가 필요함)
         FileItem item = queryActivity.findItemById(fileItemId);
-
-        // 2. 물리 저장소에서 실제 파일 제거 (Storage Activity)
-        storageActivity.deletePhysicalFile(item.uploadedPath());
-
-        // 3. DB 메타데이터 완전 삭제 (Command Activity)
+        // DB 메타데이터 먼저 삭제 시도
         commandActivity.deleteMetadata(fileItemId);
+        // 확실히 커밋될 때만 물리 파일 삭제
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    storageActivity.deletePhysicalFile(item.uploadedPath());
+                } catch (Exception e) {
+                    log.error("물리 파일 삭제 실패 (고아 파일 발생): {}", item.uploadedPath(), e);
+                    // 여기서 실패해도 DB는 이미 지워졌으니, 나중에 별도 스캔으로 지워야 함
+                }
+            }
+        });
     }
 
     /**
@@ -137,21 +127,57 @@ public class AttachFileService {
      */
     @Transactional
     public void cleanupFiles() {
-        // 1. 논리 삭제 대상 즉시 정리 (isRemoved=true)
-        List<FileItem> removedItems = queryActivity.findRemovedItems();
-        removedItems.forEach(item -> {
-            storageActivity.deletePhysicalFile(item.uploadedPath());
-            commandActivity.deleteMetadata(item.fileItemId());
-        });
+        Instant threshold = attachFilePolicy.getUnlinkedThreshold();
 
-        // 2. 미연결 파일(isLinked=false) 정리 (24시간 경과 기준)
-        // Moments 이벤트 발생 시점 기준으로 만료 시간 계산
-        Instant threshold = Instant.now().minus(24, ChronoUnit.HOURS);
         List<AttachFile> unlinkedGroups = queryActivity.findUnlinkedOldFiles(threshold);
 
         for (AttachFile group : unlinkedGroups) {
-            group.getFileItems().forEach(i -> storageActivity.deletePhysicalFile(i.uploadedPath()));
-            commandActivity.deleteGroupMetadata(group.getId());
+            // SQL에서 이미 시간으로 걸러왔으니 바로 지워도 되지만,
+            // 한 번 더 정책적으로 검증하고 싶다면 canBePurged를 쓸 수도 있어.
+            if (group.canBePurged(attachFilePolicy)) {
+                commandActivity.deleteGroupMetadata(group.getId());
+                registerPhysicalFileDeletion(group.getFileItems());
+            }
         }
+    }
+
+    /**
+     * 논리 삭제된 파일들을 물리 저장소와 DB에서 완전히 제거 (배치용)
+     */
+    @Transactional
+    public void cleanupRemovedFiles() {
+        // 1. 삭제된 아이템이 포함된 '그룹(AR)'들을 조회해오도록 Activity 메서드 변경 필요
+        // (기존 findRemovedItems() 대신 findGroupsWithRemovedItems() 사용 제안)
+        List<AttachFile> groups = queryActivity.findGroupsWithRemovedItems();
+
+        for (AttachFile group : groups) {
+            // 2. 그룹(AR)의 수정 시점이 유예 기간 정책에 따라 만료되었는지 확인
+            if (attachFilePolicy.isExpired(group.getModifiedAt())) {
+                
+                // 3. 해당 그룹 내에서 진짜 'isRemoved=true'인 녀석들만 골라냄
+                List<FileItem> removedItems = group.getRemovedFiles();
+
+                for (FileItem item : removedItems) {
+                    // 4. DB 메타데이터 삭제 (FileItem 단위)
+                    commandActivity.deleteMetadata(item.fileItemId());
+                    
+                    // 5. 물리 파일 삭제 예약
+                    registerPhysicalFileDeletion(List.of(item));
+                }
+                
+                log.info("[Cleanup] 그룹 {} 내 논리 삭제 파일 {}개 영구 제거", 
+                    group.getId().value(), removedItems.size());
+            }
+        }
+    }
+
+    // 중복되는 동기화 로직 공통화
+    private void registerPhysicalFileDeletion(List<FileItem> items) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                items.forEach(item -> storageActivity.deletePhysicalFile(item.uploadedPath()));
+            }
+        });
     }
 }

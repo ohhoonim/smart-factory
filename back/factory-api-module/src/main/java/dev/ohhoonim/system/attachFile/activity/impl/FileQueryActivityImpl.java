@@ -16,6 +16,8 @@ import dev.ohhoonim.system.attachFile.model.AttachFileId;
 import dev.ohhoonim.system.attachFile.model.FileItem;
 import dev.ohhoonim.system.attachFile.model.FileItemId;
 import dev.ohhoonim.system.attachFile.port.AttachFileRepositoryPort;
+
+
 @Component
 public class FileQueryActivityImpl implements FileQueryActivity {
 
@@ -69,4 +71,9 @@ public class FileQueryActivityImpl implements FileQueryActivity {
     public List<AttachFile> findUnlinkedOldFiles(Instant threshold) {
         return repositoryPort.findUnlinkedOldFiles(threshold);
     }
+
+   @Override
+   public List<AttachFile> findGroupsWithRemovedItems() {
+        return repositoryPort.findGroupsWithRemovedItems();
+   }
 }

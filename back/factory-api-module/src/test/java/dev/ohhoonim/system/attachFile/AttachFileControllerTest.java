@@ -7,6 +7,13 @@ import static org.mockito.BDDMockito.then;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
+import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
+import static org.springframework.restdocs.request.RequestDocumentation.partWithName;
+import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.requestParts;
 // import static org.springframework.restdocs.request.RequestDocumentation.partWithName;
 // import static org.springframework.restdocs.request.RequestDocumentation.requestParts;
 // import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
@@ -22,6 +29,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
@@ -41,125 +49,212 @@ import dev.ohhoonim.system.attachFile.model.FileItemId;
 @ExtendWith({RestDocumentationExtension.class})
 class AttachFileControllerTest {
 
-    private MockMvcTester mvc;
+        private MockMvcTester mvc;
 
-    @MockitoBean
-    private AttachFileService attachFileService;
+        @MockitoBean
+        private AttachFileService attachFileService;
 
-    @BeforeEach
-    void setUp(RestDocumentationContextProvider restDocumentation, WebApplicationContext context) {
-        // 1. MockMvc를 먼저 생성하면서 REST Docs 설정을 주입합니다.
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context)
-                .apply(documentationConfiguration(restDocumentation).operationPreprocessors()
-                        .withRequestDefaults(prettyPrint()).withResponseDefaults(prettyPrint()))
-                .build();
+        @BeforeEach
+        void setUp(RestDocumentationContextProvider restDocumentation,
+                        WebApplicationContext context) {
+                // 1. MockMvc를 먼저 생성하면서 REST Docs 설정을 주입합니다.
+                MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context)
+                                .apply(documentationConfiguration(restDocumentation)
+                                                .operationPreprocessors()
+                                                .withRequestDefaults(prettyPrint())
+                                                .withResponseDefaults(prettyPrint()))
+                                .build();
 
-        // 2. 생성된 MockMvc를 MockMvcTester로 감쌉니다.
-        this.mvc = MockMvcTester.create(mockMvc);
-    }
+                // 2. 생성된 MockMvc를 MockMvcTester로 감쌉니다.
+                this.mvc = MockMvcTester.create(mockMvc);
+        }
 
-    @Test
-    @DisplayName("신규 그룹 업로드: SUCCESS 코드와 data 필드에 26자 ULID가 응답되어야 한다")
-    void uploadNewGroupTest() {
-        // Given
-        var file = new MockMultipartFile("files", "test.txt", "text/plain", "hello".getBytes());
+        @Test
+        @DisplayName("신규 그룹 업로드: SUCCESS 코드와 data 필드에 26자 ULID가 응답되어야 한다")
+        void uploadNewGroupTest() {
+                // Given
+                var file = new MockMultipartFile("files", "test.txt", "text/plain",
+                                "hello".getBytes());
 
-        // When
-        var result = mvc.post().uri("/api/attachFile/upload").multipart().file(file).exchange();
+                // When
+                var result = mvc.post().uri("/api/attachFile/upload").multipart().file(file)
+                                .exchange();
 
-        result.assertThat().apply(document("sample-test"
-            // , 
-            // // 1. 요청 파라미터나 멀티파트 관련 문서화 (필요 시) requestParts(
-            //     partWithName("files").description("업로드할 파일 목록")
-            // ),
-            // // 2. [핵심] 응답 JSON 필드 정의
-            // responseFields(
-            //     fieldWithPath("code").description("응답 코드 (예: SUCCESS)"),
-            //     fieldWithPath("data").description("생성된 파일 그룹의 26자 ULID"),
-            //     fieldWithPath("message").description("응답 메시지").optional() // 메시지 필드가 있다면 추가
-            // )
-        ));
+                // Then & Document
+                result.assertThat().apply(document("upload-new-group",
+                                requestParts(partWithName("files")
+                                                .description("업로드할 파일 목록 (Multi-part)")),
+                                responseFields(fieldWithPath("code")
+                                                .description("응답 코드 (SUCCESS/ERROR)"),
+                                                fieldWithPath("data")
+                                                                .description("생성된 파일 그룹의 26자 ULID") // ,
+                                // fieldWithPath("message").description("응답 메시지 (성공 시 보통
+                                // null)").optional()
+                                )));
 
-        // Then
-        assertThat(result).hasStatusOk();
-        assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("SUCCESS");
-        assertThat(result).bodyJson().extractingPath("$.data").asString().hasSize(26);
-    }
+                // Then
+                assertThat(result).hasStatusOk();
+                assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("SUCCESS");
+                assertThat(result).bodyJson().extractingPath("$.data").asString().hasSize(26);
+        }
 
-    @Test
-    @DisplayName("파일 목록 조회: SUCCESS 코드와 data 필드 내에 리스트가 담겨야 한다")
-    void searchFilesTest() {
-        // Given
-        var attachFileId = AttachFileId.Creator.generate();
-        var item = new FileItem(FileItemId.Creator.generate(), "vibe.png", "/path", 100L, "png",
-                false);
+        @Test
+        @DisplayName("파일 목록 조회: SUCCESS 코드와 data 필드 내에 리스트가 담겨야 한다")
+        void searchFilesTest() {
+                // Given
+                var attachFileId = AttachFileId.Creator.generate();
+                var item = new FileItem(FileItemId.Creator.generate(), "vibe.png", "/path", 100L,
+                                "png", false);
 
-        given(attachFileService.getFilesFromGroup(any(AttachFileId.class)))
-                .willReturn(List.of(item));
+                given(attachFileService.getFilesFromGroup(any(AttachFileId.class)))
+                                .willReturn(List.of(item));
 
-        // When
-        var result = mvc.get().uri("/api/attachFile/{id}", attachFileId.getRawValue()).exchange();
+                // When
+                var result = mvc.get().uri("/api/attachFile/{id}", attachFileId.getRawValue())
+                                .exchange();
 
-        // Then
-        assertThat(result).hasStatusOk();
-        assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("SUCCESS");
-        // 핵심: List 데이터는 $.data 배열 내에 위치함
-        assertThat(result).bodyJson().extractingPath("$.data[0].originName").isEqualTo("vibe.png");
-    }
+                // Then & Document
+                result.assertThat().apply(document("search-files",
+                                pathParameters(parameterWithName("id")
+                                                .description("조회할 파일 그룹의 ULID")),
+                                responseFields(fieldWithPath("code").description("응답 코드"),
+                                                fieldWithPath("data").description("파일 상세 정보 리스트"),
+                                                fieldWithPath("data[].fileId")
+                                                                .description("개별 파일 식별자"),
+                                                fieldWithPath("data[].originName")
+                                                                .description("원본 파일명"),
+                                                fieldWithPath("data[].capacity")
+                                                                .description("파일 용량 (bytes)"),
+                                                fieldWithPath("data[].extension")
+                                                                .description("파일 확장자") // ,
+                                // fieldWithPath("message").description("응답 메시지").optional()
+                                )));
 
-    @Test
-    @DisplayName("단일 파일 다운로드: Resource 반환 시에는 ResponseHandler가 개입하지 않아 순수 데이터가 나와야 한다")
-    void downloadTest() {
-        // Given
-        var fileId = FileItemId.Creator.generate().getRawValue();
-        var item = new FileItem(new FileItemId(fileId), "manual", "path", 500L, "pdf", false);
-        Resource resource = new ByteArrayResource("PDF-DATA".getBytes());
+                // Then
+                assertThat(result).hasStatusOk();
+                assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("SUCCESS");
+                // 핵심: List 데이터는 $.data 배열 내에 위치함
+                assertThat(result).bodyJson().extractingPath("$.data[0].originName")
+                                .isEqualTo("vibe.png");
+        }
 
-        given(attachFileService.getFileItem(fileId)).willReturn(item);
-        given(attachFileService.downloadFile(fileId)).willReturn(resource);
+        @Test
+        @DisplayName("단일 파일 다운로드: Resource 반환 시에는 ResponseHandler가 개입하지 않아 순수 데이터가 나와야 한다")
+        void downloadTest() {
+                // Given
+                var fileId = FileItemId.Creator.generate().getRawValue();
+                var item = new FileItem(new FileItemId(fileId), "manual", "path", 500L, "pdf",
+                                false);
+                Resource resource = new ByteArrayResource("PDF-DATA".getBytes());
 
-        // When
-        var result = mvc.get().uri("/api/attachFile/download/{fileId}", fileId).exchange();
+                given(attachFileService.getFileItem(fileId)).willReturn(item);
+                given(attachFileService.downloadFile(fileId)).willReturn(resource);
 
-        // Then
-        assertThat(result).hasStatusOk();
-        // ResponseHandler의 supports에서 제외되므로 래핑 없이 순수 바디가 나옴
-        assertThat(result).hasBodyTextEqualTo("PDF-DATA");
+                // When
+                var result = mvc.get().uri("/api/attachFile/download/{fileId}", fileId).exchange();
 
-        // 헤더 검증 (Pragmatic하게 수동 추출)
-        String contentDisp = result.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION);
-        assertThat(ContentDisposition.parse(contentDisp).getFilename()).contains("manual.pdf");
-    }
+                // Then & Document
+                result.assertThat().apply(document("download-file", pathParameters(
+                                parameterWithName("fileId").description("다운로드할 파일의 개별 식별자"))
+                // 다운로드는 Body가 바이너리이므로 responseFields는 생략함
+                ));
 
-    @Test
-    @DisplayName("파일 영구 삭제: 204 No Content를 응답하고 공통 래퍼가 없어야 한다")
-    void purgeFileTest() {
-        // Given
-        var fileId = FileItemId.Creator.generate().getRawValue();
+                // Then
+                assertThat(result).hasStatusOk();
+                // ResponseHandler의 supports에서 제외되므로 래핑 없이 순수 바디가 나옴
+                assertThat(result).hasBodyTextEqualTo("PDF-DATA");
 
-        // When
-        var result = mvc.delete().uri("/api/attachFile/purge/{fileId}", fileId).exchange();
+                // 헤더 검증 (Pragmatic하게 수동 추출)
+                String contentDisp =
+                                result.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION);
+                assertThat(ContentDisposition.parse(contentDisp).getFilename())
+                                .contains("manual.pdf");
+        }
 
-        // Then
-        assertThat(result).hasStatus(HttpStatus.NO_CONTENT);
-        // @ResponseStatus(HttpStatus.NO_CONTENT)는 Body가 없으므로 Handler를 타지 않음
-        then(attachFileService).should().purgeFile(new FileItemId(fileId));
-    }
+        @Test
+        @DisplayName("파일 영구 삭제: 204 No Content를 응답하고 공통 래퍼가 없어야 한다")
+        void purgeFileTest() {
+                // Given
+                var fileId = FileItemId.Creator.generate().getRawValue();
 
-    @Test
-    @DisplayName("예외 발생 시: ResponseHandler에 의해 ERROR 코드와 메시지가 응답되어야 한다")
-    void errorHandlingTest() {
-        // Given
-        given(attachFileService.getFilesFromGroup(any()))
-                .willThrow(new RuntimeException("조회 권한이 없습니다."));
+                // When
+                var result = mvc.delete().uri("/api/attachFile/purge/{fileId}", fileId).exchange();
+                // Then & Document
+                result.assertThat().apply(document("purge-file", pathParameters(
+                                parameterWithName("fileId").description("물리적으로 삭제할 파일의 개별 식별자"))));
 
-        // When
-        var result = mvc.get().uri("/api/attachFile/invalid-id").exchange();
+                // Then
+                assertThat(result).hasStatus(HttpStatus.NO_CONTENT);
+                // @ResponseStatus(HttpStatus.NO_CONTENT)는 Body가 없으므로 Handler를 타지 않음
+                then(attachFileService).should().purgeFile(new FileItemId(fileId));
+        }
 
-        // Then
-        assertThat(result).hasStatusOk(); // Handler가 200 OK로 감싸서 반환함
-        assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("ERROR");
-        assertThat(result).bodyJson().extractingPath("$.message")
-                .isEqualTo("올바른 AttachFileId형식이 아닙니다.");
-    }
+        @Test
+        @DisplayName("예외 발생 시: ResponseHandler에 의해 ERROR 코드와 메시지가 응답되어야 한다")
+        void errorHandlingTest() {
+                // Given
+                given(attachFileService.getFilesFromGroup(any()))
+                                .willThrow(new RuntimeException("조회 권한이 없습니다."));
+
+                // When
+                var result = mvc.get().uri("/api/attachFile/invalid-id").exchange();
+
+                // Then & Document
+                result.assertThat().apply(document("error-handling", responseFields(
+                                fieldWithPath("code").description("응답 코드 (ERROR)"),
+                                fieldWithPath("data").description("데이터 (에러 시 null)").optional(),
+                                fieldWithPath("message").description("에러 원인 메시지"))));
+
+                // Then
+                assertThat(result).hasStatusOk(); // Handler가 200 OK로 감싸서 반환함
+                assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("ERROR");
+                assertThat(result).bodyJson().extractingPath("$.message")
+                                .isEqualTo("올바른 AttachFileId형식이 아닙니다.");
+        }
+
+        @Test
+        @DisplayName("기존 그룹에 파일 추가: 기존 ULID 경로에 파일을 추가 업로드한다")
+        void uploadToExistingGroupTest() {
+                // Given
+                var attachFileId = "01ARZ3NDEKTSV4RRFFQ6KHNQZ4";
+                var file = new MockMultipartFile("files", "added-file.jpg", "image/jpeg",
+                                "image-data".getBytes());
+
+                // When
+                var result = mvc.post().uri("/api/attachFile/upload/{attachFileId}", attachFileId)
+                                .multipart().file(file).exchange();
+
+                // Then & Document
+                result.assertThat().apply(document("upload-to-existing-group",
+                                pathParameters(parameterWithName("attachFileId")
+                                                .description("기존 파일 그룹의 ULID")),
+                                requestParts(partWithName("files").description("추가할 파일 목록"))
+                // 리턴 타입이 void이므로 responseFields는 생략 (200 OK만 확인)
+                ));
+
+                assertThat(result).hasStatusOk();
+        }
+
+        @Test
+        @DisplayName("ZIP 다운로드: 여러 파일 ID를 쿼리 파라미터로 받아 ZIP으로 응답한다")
+        void zipDownloadTest() {
+                // Given
+                List<String> fileIds = List.of("ID1", "ID2", "ID3");
+                Resource zipResource = new ByteArrayResource("ZIP-BINARY-DATA".getBytes());
+
+                given(attachFileService.downloadZip(any())).willReturn(zipResource);
+
+                // When
+                var result = mvc.get().uri("/api/attachFile/download-zip")
+                                .queryParam("fileIds", String.join(",", fileIds)).exchange();
+
+                // Then & Document
+                result.assertThat().apply(document("download-zip",
+                                queryParameters(parameterWithName("fileIds").description(
+                                                "ZIP으로 묶을 개별 파일 ID 리스트 (Comma Separated)"))));
+
+                assertThat(result).hasStatusOk();
+                assertThat(result).hasHeader(HttpHeaders.CONTENT_TYPE,
+                                MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        }
 }

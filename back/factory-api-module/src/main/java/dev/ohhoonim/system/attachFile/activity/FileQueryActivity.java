@@ -36,4 +36,6 @@ public interface FileQueryActivity {
      */
     List<AttachFile> findUnlinkedOldFiles(Instant threshold);
 
+    List<AttachFile> findGroupsWithRemovedItems();
+
 }
