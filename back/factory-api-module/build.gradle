@@ -98,12 +98,19 @@ asciidoctorj {
 tasks.named("asciidoctor") {
     dependsOn test
     inputs.dir snippetsDir
-    // 할당(=) 대신 샘플처럼 메서드 방식 사용
     configurations "asciidoctorExtensions" 
 
     sourceDir = file('src/docs/asciidoc')
-    baseDirFollowsSourceDir()
+    baseDirFollowsSourceDir() // 다이어그램 활성화
     outputDir = file('build/api-spec')
 
-    // JVM 옵션은 Java 25에서는 여전히 필요할 수 있으니 에러 나면 추가하세요
+	attributes (
+        'snippets': snippetsDir,
+        'toc': 'left',
+        'icons': 'font',
+        'setanchors': '',
+        'idprefix': '',
+        'idseparator': '-',
+        'docinfo': 'shared'
+    )
 }

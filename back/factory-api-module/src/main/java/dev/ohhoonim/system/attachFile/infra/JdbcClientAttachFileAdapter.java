@@ -57,14 +57,16 @@ public class JdbcClientAttachFileAdapter implements AttachFileRepositoryPort {
     @Transactional
     public void save(AttachFile attachFile) {
         // 부모 저장 (PostgreSQL 전용)
-        jdbcClient.sql("""
-                INSERT INTO SYSTEM_ATTACH_FILE (id, is_linked, created_at, created_by, modified_at, modified_by)
-                VALUES (:id, :isLinked, :createdAt, :createdBy, :modifiedAt, :modifiedBy)
-                ON CONFLICT (id) DO UPDATE SET
-                    is_linked = EXCLUDED.is_linked,
-                    modified_at = EXCLUDED.modified_at,
-                    modified_by = EXCLUDED.modified_by
-                """).param("id", attachFile.getId().getRawValue())
+        jdbcClient
+                .sql("""
+                        INSERT INTO SYSTEM_ATTACH_FILE (id, is_linked, created_at, created_by, modified_at, modified_by)
+                        VALUES (:id, :isLinked, :createdAt, :createdBy, :modifiedAt, :modifiedBy)
+                        ON CONFLICT (id) DO UPDATE SET
+                            is_linked = EXCLUDED.is_linked,
+                            modified_at = EXCLUDED.modified_at,
+                            modified_by = EXCLUDED.modified_by
+                        """)
+                .param("id", attachFile.getId().getRawValue())
                 .param("isLinked", attachFile.getIsLinked())
                 .param("createdAt", Timestamp.from(attachFile.getCreatedAt()))
                 .param("createdBy", attachFile.getCreatedBy())
@@ -141,5 +143,26 @@ public class JdbcClientAttachFileAdapter implements AttachFileRepositoryPort {
         // 2. 부모 그룹 삭제
         var sqlAttach = "DELETE FROM SYSTEM_ATTACH_FILE WHERE id = :id";
         jdbcClient.sql(sqlAttach).param("id", id.getRawValue()).update();
+    }
+
+    @Override
+    public List<AttachFile> findGroupsWithRemovedItems() {
+        // 1. is_removed = TRUE인 파일 아이템을 가진 부모 그룹 ID를 중복 없이 조회
+        var sql = """
+                SELECT DISTINCT a.* FROM SYSTEM_ATTACH_FILE a
+                JOIN SYSTEM_FILE_ITEM i ON a.id = i.attach_file_id
+                WHERE i.is_removed = TRUE
+                """;
+
+        return jdbcClient.sql(sql).query((rs, rowNum) -> {
+            AttachFileId id = new AttachFileId(rs.getString("id"));
+
+            // 2. 해당 그룹의 모든 자식 아이템(삭제된 것 + 안 된 것 전체)을 로드
+            List<FileItem> items = loadFileItems(id);
+
+            return AttachFile.reconstitute(id, items, rs.getBoolean("is_linked"),
+                    rs.getTimestamp("created_at").toInstant(), rs.getString("created_by"),
+                    rs.getTimestamp("modified_at").toInstant(), rs.getString("modified_by"));
+        }).list();
     }
 }

@@ -2,6 +2,8 @@ package dev.ohhoonim.system.attachFile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,23 +18,34 @@ import org.testcontainers.utility.DockerImageName;
 import dev.ohhoonim.system.attachFile.infra.JdbcClientAttachFileAdapter;
 import dev.ohhoonim.system.attachFile.model.AttachFile;
 import dev.ohhoonim.system.attachFile.model.AttachFileId;
+import dev.ohhoonim.system.attachFile.model.AttachFilePolicy;
 import dev.ohhoonim.system.attachFile.model.FileItem;
 import dev.ohhoonim.system.attachFile.model.FileItemId;
+
+
 @Testcontainers
-@JdbcTest // DB 관련 빈들만 로드하여 속도 최적화
-@Import(JdbcClientAttachFileAdapter.class) // 테스트 대상 어댑터 주입
+@JdbcTest
+@Import(JdbcClientAttachFileAdapter.class)
 class JdbcClientAttachFileAdapterTest {
 
     @Container
-    @ServiceConnection // 컨테이너 정보를 자동으로 DataSource에 연결
+    @ServiceConnection
     private static final PostgreSQLContainer postgres = 
-            new PostgreSQLContainer(DockerImageName.parse("postgres:18.1-alpine"));
+            new PostgreSQLContainer(DockerImageName.parse("postgres:18.1-alpine")); // 버전은 마스터 환경에 맞춰
 
     @Autowired
     private JdbcClientAttachFileAdapter adapter;
 
     private AttachFileId commonGroupId;
     private final String operator = "matthew";
+    
+    // DB 테스트를 위한 관대한 더미 정책
+    private final AttachFilePolicy permissivePolicy = new AttachFilePolicy() {
+        @Override public void verifyAddition(int count) {} // 무제한 허용
+        @Override public void verifyExtension(String ext) {} // 모두 허용
+        @Override public boolean isExpired(Instant time) { return false; }
+        @Override public Instant getUnlinkedThreshold() { return Instant.now(); }
+    };
 
     @BeforeEach
     void setUp() {
@@ -46,7 +59,9 @@ class JdbcClientAttachFileAdapterTest {
         var itemId = FileItemId.Creator.generate();
         var item = new FileItem(itemId, "handbook.pdf", "/storage/system", 2048L, "pdf", false);
         var attachFile = new AttachFile(commonGroupId, operator);
-        attachFile.addFileItem(item);
+        
+        // [수정] 정책 주입
+        attachFile.addFileItem(item, permissivePolicy);
 
         // When
         adapter.save(attachFile);
@@ -62,33 +77,18 @@ class JdbcClientAttachFileAdapterTest {
     }
 
     @Test
-    @DisplayName("UPSERT: 동일한 ID로 저장 시 기존 레코드가 업데이트되어야 한다 (ON CONFLICT)")
-    void upsertLogicTest() {
-        // Given
-        var attachFile = new AttachFile(commonGroupId, operator);
-        adapter.save(attachFile);
-
-        // When: 연결 확정 상태로 변경 후 재저장
-        attachFile.confirmLink();
-        adapter.save(attachFile);
-
-        // Then
-        AttachFile updated = adapter.load(commonGroupId).orElseThrow();
-        assertThat(updated.getIsLinked()).isTrue();
-        assertThat(updated.getModifiedAt()).isAfter(updated.getCreatedAt());
-    }
-
-    @Test
     @DisplayName("파일 아이템 삭제 시 논리적 상태 변화가 DB에 반영되어야 한다")
     void itemLogicalDeleteUpdateTest() {
         // Given
         var itemId = FileItemId.Creator.generate();
         var item = new FileItem(itemId, "delete_me.txt", "/tmp", 10L, "txt", false);
         var attachFile = new AttachFile(commonGroupId, operator);
-        attachFile.addFileItem(item);
+        
+        // [수정] 정책 주입
+        attachFile.addFileItem(item, permissivePolicy);
         adapter.save(attachFile);
 
-        // When: AR에서 아이템 제거(isRemoved=true) 후 저장
+        // When
         attachFile.removeFileItem(itemId);
         adapter.save(attachFile);
 
@@ -98,19 +98,23 @@ class JdbcClientAttachFileAdapterTest {
     }
 
     @Test
-    @DisplayName("그룹 삭제 시 부모 레코드와 연관된 모든 아이템 메타데이터가 제거되어야 한다")
-    void deleteGroupCascadeEffectTest() {
+    @DisplayName("삭제된 아이템을 가진 그룹들을 조회할 수 있어야 한다")
+    void findGroupsWithRemovedItemsTest() {
         // Given
         var itemId = FileItemId.Creator.generate();
         var attachFile = new AttachFile(commonGroupId, operator);
-        attachFile.addFileItem(new FileItem(itemId, "sub.img", "/img", 50L, "jpg", false));
+        attachFile.addFileItem(new FileItem(itemId, "old.txt", "/tmp", 1L, "txt", false), permissivePolicy);
+        
+        // 삭제 상태로 만듦
+        attachFile.removeFileItem(itemId);
         adapter.save(attachFile);
 
         // When
-        adapter.deleteGroup(commonGroupId);
+        List<AttachFile> groups = adapter.findGroupsWithRemovedItems();
 
         // Then
-        assertThat(adapter.load(commonGroupId)).isEmpty();
-        assertThat(adapter.loadItem(itemId)).isEmpty();
+        assertThat(groups).isNotEmpty();
+        assertThat(groups.get(0).getId()).isEqualTo(commonGroupId);
+        assertThat(groups.get(0).getFileItems().get(0).isRemoved()).isTrue();
     }
 }

@@ -1,0 +1,12 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tocbot/4.11.1/tocbot.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocbot/4.11.1/tocbot.css">
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        tocbot.init({
+          tocSelector: '#toc',          // TOC가 들어갈 곳
+          contentSelector: '#content',  // 본문 내용이 있는 곳
+          headingSelector: 'h1, h2, h3, h4', // 목차로 만들 헤더 수준
+          hasInnerContainers: true,
+        });
+    });
+</script>

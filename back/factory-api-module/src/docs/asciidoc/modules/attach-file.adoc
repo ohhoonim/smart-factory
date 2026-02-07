@@ -1,0 +1,142 @@
+[[Attach-File-API]]
+== 📂 파일 관리 모듈 (AttachFile)
+
+이 모듈은 시스템 내의 모든 파일 업로드, 조회, 다운로드 및 정리를 담당합니다. 모든 성공 응답은 공통 래퍼(code, data)에 감싸져 반환됩니다.
+
+=== 1. 신규 파일 그룹 업로드
+여러 개의 파일을 업로드하여 새로운 파일 그룹을 생성합니다. 반환된 ULID는 메인 엔티티(게시글 등) 저장 시 사용됩니다.
+
+==== Request
+include::{snippets}/upload-new-group/http-request.adoc[]
+
+// 멀티파트 파라미터 상세
+==== Request Parts
+include::{snippets}/upload-new-group/request-parts.adoc[]
+
+==== Response
+include::{snippets}/upload-new-group/http-response.adoc[]
+
+// 응답 필드 상세
+==== Response Fields
+include::{snippets}/upload-new-group/response-fields.adoc[]
+
+---
+
+=== 2. 파일 목록 조회
+파일 그룹 ID(ULID)를 사용하여 해당 그룹에 속한 모든 파일의 메타데이터 리스트를 조회합니다.
+
+==== Request
+include::{snippets}/search-files/http-request.adoc[]
+
+// 경로 변수 상세
+==== Path Parameters
+include::{snippets}/search-files/path-parameters.adoc[]
+
+==== Response
+include::{snippets}/search-files/http-response.adoc[]
+
+==== Response Fields
+include::{snippets}/search-files/response-fields.adoc[]
+
+---
+
+=== 3. 단일 파일 다운로드
+개별 파일 식별자를 통해 물리 파일을 다운로드합니다. 이 API는 공통 응답 래퍼를 사용하지 않고 순수 바이너리 데이터를 반환합니다.
+
+==== Request
+include::{snippets}/download-file/http-request.adoc[]
+
+==== Path Parameters
+include::{snippets}/download-file/path-parameters.adoc[]
+
+==== Response
+// 다운로드는 바이너리이므로 응답 예시만 보여줌
+include::{snippets}/download-file/http-response.adoc[]
+
+---
+
+=== 4. 파일 영구 삭제 (Purge)
+데이터베이스 메타데이터와 물리 파일을 즉시 완전히 삭제합니다. 이 작업은 복구할 수 없습니다.
+
+==== Request
+include::{snippets}/purge-file/http-request.adoc[]
+
+==== Path Parameters
+include::{snippets}/purge-file/path-parameters.adoc[]
+
+==== Response
+include::{snippets}/purge-file/http-response.adoc[]
+
+---
+
+=== 5. 공통 에러 응답
+잘못된 ID 형식이나 권한 문제 발생 시 반환되는 표준 에러 형식입니다.
+
+==== Response
+include::{snippets}/error-handling/http-response.adoc[]
+
+==== Response Fields
+include::{snippets}/error-handling/response-fields.adoc[]
+
+
+---
+
+=== 6. 기존 그룹에 파일 추가
+이미 생성된 파일 그룹(ULID)에 새로운 파일을 추가로 업로드합니다.
+
+==== Request
+include::{snippets}/upload-to-existing-group/http-request.adoc[]
+
+==== Path Parameters
+include::{snippets}/upload-to-existing-group/path-parameters.adoc[]
+
+==== Request Parts
+include::{snippets}/upload-to-existing-group/request-parts.adoc[]
+
+==== Response
+include::{snippets}/upload-to-existing-group/http-response.adoc[]
+
+---
+
+=== 7. 여러 파일 ZIP 다운로드
+개별 파일 ID 목록을 받아 하나의 ZIP 아카이브로 다운로드합니다.
+
+==== Request
+include::{snippets}/download-zip/http-request.adoc[]
+
+==== Query Parameters
+include::{snippets}/download-zip/query-parameters.adoc[]
+
+==== Response
+include::{snippets}/download-zip/http-response.adoc[]
+
+---
+
+=== 📊 협업 시퀀스 다이어그램
+
+외부 모듈(게시판, 상품 등)이 첨부파일 모듈을 사용하는 표준 흐름입니다.
+
+image::images/attach-file-collaboration-sequence-diagram.png[]
+
+[plantuml]
+----
+@startuml
+autonumber
+skinparam monochrome true
+actor "User (Client)" as User
+participant "External Module" as External
+participant "AttachFile Module" as Attach
+database "Storage / DB" as DB
+
+User -> Attach : 1. 파일 업로드 (POST)
+Attach -> DB : 임시 저장 (is_linked=false)
+Attach --> User : AttachFileId 반환
+
+User -> External : 2. 메인 엔티티 저장 (ID 포함)
+External -> DB : 데이터 저장
+External -[#blue]> Attach : 3. AttachFileConfirmCommand (Event)
+Attach -> DB : 연결 확정 (is_linked=true)
+
+External --> User : 완료 응답
+@enduml
+----

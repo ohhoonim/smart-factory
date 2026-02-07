@@ -16,12 +16,13 @@ public class AttachFileCommandListener {
 
     @ApplicationModuleListener
     public void on(AttachFileConfirmCommand command) {
-        // String -> 내부 도메인 ID 타입으로 변환 (Value Object의 정적 팩토리 메서드 활용)
-        AttachFileId groupId = AttachFileId.Creator.from(command.fileGroupId());
-        
-        attachFileService.confirmLink(groupId);
-        
-        log.info("[Event] 파일 그룹 {}이 연결 확정되었습니다.", 
-            command.fileGroupId());
+        try {
+            AttachFileId groupId = AttachFileId.Creator.from(command.fileGroupId());
+            attachFileService.confirmLink(groupId);
+            log.info("[Event Success] 파일 그룹 {} 연결 확정", command.fileGroupId());
+        } catch (Exception e) {
+            log.error("[Event Failed] 파일 그룹 {} 확정 중 오류 발생: {}", command.fileGroupId(),
+                    e.getMessage());
+        }
     }
 }

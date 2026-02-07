@@ -43,4 +43,6 @@ public interface AttachFileRepositoryPort {
      * AttachFile 그룹 전체 삭제 (Cascade 설정을 통해 하위 아이템 자동 삭제 권장)
      */
     void deleteGroup(AttachFileId id);
+
+    List<AttachFile> findGroupsWithRemovedItems();
 }

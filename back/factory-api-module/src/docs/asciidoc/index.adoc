@@ -3,61 +3,10 @@
 :icons: font
 :source-highlighter: highlightjs
 :toc: left
-:toclevels: 3
+:toclevels: 2
 :sectlinks:
-:sectnums:
+:docinfo: shared
 
-[[Introduction]]
-== 개요
-스마트 팩토리 프로젝트의 백엔드 sample-test API 명세서 입니다.
 
-[[Common]]
-== 공통 사항
-API 응답 규격 및 공통 에러 코드는 다음과 같습니다.
-
-// 만약 공통 응답 스니펫을 만드셨다면 여기에 include 하세요.
-
----
-:operation-name: sample-test 
-[[Operation-ID]]
-=== 1. API 명칭 (예: 사용자 등록 및 프로필 사진 업로드)
-
-==== 개요
-해당 API에 대한 간략한 설명을 적습니다. (예: 사용자의 기본 정보와 프로필 이미지를 서버에 저장합니다.)
-
-==== HTTP Request
-include::{snippets}/{operation-name}/http-request.adoc[]
-
-// 1. URL 경로 파라미터 (e.g. /users/{id})
-==== Path Parameters
-include::{snippets}/{operation-name}/path-parameters.adoc[]
-
-// 2. 쿼리 파라미터 (e.g. ?page=1&sort=name)
-==== Query Parameters
-include::{snippets}/{operation-name}/query-parameters.adoc[]
-
-// 3. 요청 헤더 (e.g. Authorization, Content-Type)
-==== Request Headers
-include::{snippets}/{operation-name}/request-headers.adoc[]
-
-// 4. 멀티파트 파트 (파일 업로드 등)
-==== Request Parts
-include::{snippets}/{operation-name}/request-parts.adoc[]
-
-// 5. 요청 바디 필드 (JSON Payload)
-==== Request Fields
-include::{snippets}/{operation-name}/request-fields.adoc[]
-
-==== HTTP Response
-include::{snippets}/{operation-name}/http-response.adoc[]
-
-// 6. 응답 헤더
-==== Response Headers
-include::{snippets}/{operation-name}/response-headers.adoc[]
-
-// 7. 응답 바디 필드 (JSON Payload)
-==== Response Fields
-include::{snippets}/{operation-name}/response-fields.adoc[]
-
-==== Example cURL
-include::{snippets}/{operation-name}/curl-request.adoc[]
+// 2. 파일 모듈 상세 내용 포함
+include::modules/attach-file.adoc[]
