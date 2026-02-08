@@ -1,4 +1,4 @@
-package dev.ohhoonim.system.attachFile.activity;
+package dev.ohhoonim.system.attachFile.api;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -10,6 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
+import dev.ohhoonim.system.attachFile.activity.FileCommandActivity;
+import dev.ohhoonim.system.attachFile.activity.FileQueryActivity;
+import dev.ohhoonim.system.attachFile.activity.FileStorageActivity;
+import dev.ohhoonim.system.attachFile.activity.FileStreamActivity;
 import dev.ohhoonim.system.attachFile.model.AttachFile;
 import dev.ohhoonim.system.attachFile.model.AttachFileId;
 import dev.ohhoonim.system.attachFile.model.AttachFilePolicy;

@@ -2,7 +2,7 @@ package dev.ohhoonim.system.attachFile;
 
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
-import dev.ohhoonim.system.attachFile.activity.AttachFileService;
+import dev.ohhoonim.system.attachFile.api.AttachFileService;
 import dev.ohhoonim.system.attachFile.model.AttachFileId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

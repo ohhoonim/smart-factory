@@ -7,6 +7,9 @@
 :sectlinks:
 :docinfo: shared
 
+----
+$ ./gradlew clean test --tests "*Controller*" asciidoctor -i
+----
 
 // 2. 파일 모듈 상세 내용 포함
 include::modules/attach-file.adoc[]

@@ -3,7 +3,7 @@ package dev.ohhoonim.system.attachFile;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.modulith.moments.DayHasPassed;
 import org.springframework.stereotype.Component;
-import dev.ohhoonim.system.attachFile.activity.AttachFileService;
+import dev.ohhoonim.system.attachFile.api.AttachFileService;
 import lombok.RequiredArgsConstructor;
 
 @Component
