@@ -16,6 +16,7 @@ import { Route as PracticeFormSimpleRouteImport } from './routes/practice/form-s
 import { Route as PracticeDashboardRouteImport } from './routes/practice/dashboard'
 import { Route as PracticeCounterRouteImport } from './routes/practice/counter'
 import { Route as PracticePostsIndexRouteImport } from './routes/practice/posts/index'
+import { Route as PracticeAttachfileIndexRouteImport } from './routes/practice/attachfile/index'
 import { Route as PracticePostsIdRouteImport } from './routes/practice/posts/$id'
 import { Route as PracticeBasicUseRefRouteImport } from './routes/practice/basic/useRef'
 import { Route as PracticeBasicSuspenseRouteImport } from './routes/practice/basic/suspense'
@@ -57,6 +58,11 @@ const PracticePostsIndexRoute = PracticePostsIndexRouteImport.update({
   path: '/posts/',
   getParentRoute: () => PracticeRouteRoute,
 } as any)
+const PracticeAttachfileIndexRoute = PracticeAttachfileIndexRouteImport.update({
+  id: '/attachfile/',
+  path: '/attachfile/',
+  getParentRoute: () => PracticeRouteRoute,
+} as any)
 const PracticePostsIdRoute = PracticePostsIdRouteImport.update({
   id: '/posts/$id',
   path: '/posts/$id',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/practice/basic/suspense': typeof PracticeBasicSuspenseRoute
   '/practice/basic/useRef': typeof PracticeBasicUseRefRoute
   '/practice/posts/$id': typeof PracticePostsIdRoute
+  '/practice/attachfile/': typeof PracticeAttachfileIndexRoute
   '/practice/posts/': typeof PracticePostsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/practice/basic/suspense': typeof PracticeBasicSuspenseRoute
   '/practice/basic/useRef': typeof PracticeBasicUseRefRoute
   '/practice/posts/$id': typeof PracticePostsIdRoute
+  '/practice/attachfile': typeof PracticeAttachfileIndexRoute
   '/practice/posts': typeof PracticePostsIndexRoute
 }
 export interface FileRoutesById {
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/practice/basic/suspense': typeof PracticeBasicSuspenseRoute
   '/practice/basic/useRef': typeof PracticeBasicUseRefRoute
   '/practice/posts/$id': typeof PracticePostsIdRoute
+  '/practice/attachfile/': typeof PracticeAttachfileIndexRoute
   '/practice/posts/': typeof PracticePostsIndexRoute
 }
 export interface FileRouteTypes {
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/practice/basic/suspense'
     | '/practice/basic/useRef'
     | '/practice/posts/$id'
+    | '/practice/attachfile/'
     | '/practice/posts/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/practice/basic/suspense'
     | '/practice/basic/useRef'
     | '/practice/posts/$id'
+    | '/practice/attachfile'
     | '/practice/posts'
   id:
     | '__root__'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/practice/basic/suspense'
     | '/practice/basic/useRef'
     | '/practice/posts/$id'
+    | '/practice/attachfile/'
     | '/practice/posts/'
   fileRoutesById: FileRoutesById
 }
@@ -225,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PracticePostsIndexRouteImport
       parentRoute: typeof PracticeRouteRoute
     }
+    '/practice/attachfile/': {
+      id: '/practice/attachfile/'
+      path: '/attachfile'
+      fullPath: '/practice/attachfile/'
+      preLoaderRoute: typeof PracticeAttachfileIndexRouteImport
+      parentRoute: typeof PracticeRouteRoute
+    }
     '/practice/posts/$id': {
       id: '/practice/posts/$id'
       path: '/posts/$id'
@@ -273,6 +292,7 @@ interface PracticeRouteRouteChildren {
   PracticeBasicSuspenseRoute: typeof PracticeBasicSuspenseRoute
   PracticeBasicUseRefRoute: typeof PracticeBasicUseRefRoute
   PracticePostsIdRoute: typeof PracticePostsIdRoute
+  PracticeAttachfileIndexRoute: typeof PracticeAttachfileIndexRoute
   PracticePostsIndexRoute: typeof PracticePostsIndexRoute
 }
 
@@ -286,6 +306,7 @@ const PracticeRouteRouteChildren: PracticeRouteRouteChildren = {
   PracticeBasicSuspenseRoute: PracticeBasicSuspenseRoute,
   PracticeBasicUseRefRoute: PracticeBasicUseRefRoute,
   PracticePostsIdRoute: PracticePostsIdRoute,
+  PracticeAttachfileIndexRoute: PracticeAttachfileIndexRoute,
   PracticePostsIndexRoute: PracticePostsIndexRoute,
 }
 

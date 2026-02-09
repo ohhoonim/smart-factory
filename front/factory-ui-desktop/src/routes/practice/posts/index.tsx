@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import PostList from "../../../components/PostList";
+import PostList from "../../../features/posts/components/PostList";
 
 export const Route = createFileRoute("/practice/posts/")({
   component: RouteComponent,

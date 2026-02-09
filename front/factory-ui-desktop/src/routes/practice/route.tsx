@@ -62,6 +62,9 @@ function PractiseLayoutComponent() {
           <li>
             <Link to="/practice/form-simple">Form - Simple</Link>
           </li>
+          <li>
+            <Link to="/practice/attachfile">Attach File</Link>
+          </li>
         </ul>
       </nav>
       <div style={contents}>

@@ -6,6 +6,7 @@
 :toclevels: 2
 :sectlinks:
 :docinfo: shared
+:plantuml-server-url: http://localhost:18080
 
 ----
 $ ./gradlew clean test --tests "*Controller*" asciidoctor -i
@@ -13,3 +14,5 @@ $ ./gradlew clean test --tests "*Controller*" asciidoctor -i
 
 // 2. 파일 모듈 상세 내용 포함
 include::modules/attach-file.adoc[]
+
+include::guides/5-step-architecture.adoc[]

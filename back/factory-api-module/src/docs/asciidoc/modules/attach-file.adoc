@@ -1,5 +1,4 @@
-[[Attach-File-API]]
-== 📂 파일 관리 모듈 (AttachFile)
+== 파일 관리 모듈 (AttachFile)
 
 이 모듈은 시스템 내의 모든 파일 업로드, 조회, 다운로드 및 정리를 담당합니다. 모든 성공 응답은 공통 래퍼(code, data)에 감싸져 반환됩니다.
 
@@ -112,13 +111,13 @@ include::{snippets}/download-zip/http-response.adoc[]
 
 ---
 
-=== 📊 협업 시퀀스 다이어그램
+=== 8. 협업 시퀀스 다이어그램
 
 외부 모듈(게시판, 상품 등)이 첨부파일 모듈을 사용하는 표준 흐름입니다.
 
 image::images/attach-file-collaboration-sequence-diagram.png[]
 
-[plantuml]
+[plantuml, target=attach-file-colabo-sequence-diag, format=png]
 ----
 @startuml
 autonumber
@@ -140,3 +139,4 @@ Attach -> DB : 연결 확정 (is_linked=true)
 External --> User : 완료 응답
 @enduml
 ----
+
