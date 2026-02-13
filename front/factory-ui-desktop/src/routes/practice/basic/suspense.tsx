@@ -8,7 +8,7 @@ export const Route = createFileRoute("/practice/basic/suspense")({
 const LazyGreeting = React.lazy(() => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      return resolve(import("../../../components/PostList"));
+      return resolve(import("../../../features/posts/components/PostList"));
     }, 2000);
   }) as Promise<{ default: React.ComponentType<unknown> }>;
 });

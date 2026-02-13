@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-
-import Modal from "../../../components/Modal";
 import { useState } from "react";
+import Modal from "../../../components/common/Modal";
 
 export const Route = createFileRoute("/practice/basic/modal")({
   component: RouteComponent,
