@@ -73,6 +73,15 @@ public class DefaultResponseHandler implements ResponseBodyAdvice<Object> {
 
         Response responseSuccess = new Response.Success(ResponseCode.SUCCESS, body);
 
+        if (body instanceof String || selectedConverterType.getName().contains("StringHttpMessageConverter")) {
+            try {
+                response.getHeaders().set("Content-Type", "application/json");
+                return objectMapper.writeValueAsString(responseSuccess);
+            } catch (JacksonException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         if (selectedContentType.isCompatibleWith(MediaType.APPLICATION_JSON)) {
             return responseSuccess;
         }

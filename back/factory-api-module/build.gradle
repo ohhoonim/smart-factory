@@ -63,11 +63,11 @@ dependencies {
 	implementation 'org.mybatis.dynamic-sql:mybatis-dynamic-sql:1.5.2'
 	testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:4.0.0'
 	// security and jwt
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	testImplementation 'org.springframework.security:spring-security-test'
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+	// implementation 'org.springframework.boot:spring-boot-starter-security'
+	// testImplementation 'org.springframework.security:spring-security-test'
+	// implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	// runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	// runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 	// modulith: core
 	implementation 'org.springframework.modulith:spring-modulith-starter-jdbc'
 	implementation 'org.springframework.modulith:spring-modulith-starter-insight' // actuator 포함
